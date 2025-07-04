@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "currency-advisor": {
+      "command": "node",
+      "args": ["./mcp-server.js"],
+      "env": {
+        "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE"
+      }
+    }
+  }
+} 
