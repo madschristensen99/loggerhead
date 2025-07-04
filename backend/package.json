@@ -1,0 +1,20 @@
+{
+  "name": "loggerhead-backend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "mcp": "node ./mcp-server.js",
+    "test-mcp": "node -e \"const { CurrencyAdvisorMCP } = require('./mcp/currency-advisor'); new CurrencyAdvisorMCP().execute().then(console.log).catch(console.error);\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "axios": "^1.6.0",
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "jade": "~1.11.0",
+    "morgan": "~1.9.1"
+  }
+}

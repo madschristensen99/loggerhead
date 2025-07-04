@@ -1,0 +1,21 @@
+{
+  "name": "loggerhead",
+  "version": "1.0.0",
+  "description": "Server for managing Privy wallets and Stargate Finance cross-chain transfers",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "demo": "node start.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "ethers": "^5.7.2",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
