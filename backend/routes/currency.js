@@ -3,7 +3,7 @@ var router = express.Router();
 
 /* GET currency listing. */
 router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+  res.json({ EUR: '70%', USD: '30%' });
 });
 
 module.exports = router;
