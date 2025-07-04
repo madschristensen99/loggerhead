@@ -13,5 +13,5 @@ npm install
 Then to run the server you just need to run
 
 ```sh
-node index.js
+npm start
 ```
