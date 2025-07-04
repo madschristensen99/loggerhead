@@ -10,8 +10,10 @@ You should install dependencies first with this command
 npm install
 ```
 
-Then to run the server you just need to run
+Then to run the server you just need to run, note that you do need to run it
+with a flipside api key like this:
 
 ```sh
+export FLIPSIDE_API_KEY=<your-api-key>
 npm start
 ```
