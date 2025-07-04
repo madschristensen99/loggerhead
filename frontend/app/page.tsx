@@ -15,6 +15,32 @@ export default function Home() {
   const { wallets } = useWallets();
   const [createdWallets, setCreatedWallets] = useState<CreatedWallet[]>([]);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+  const [balance, setBalance] = useState("0.0000");
+
+  // Get the latest wallet's address
+  const latestWalletAddress = createdWallets.length > 0 ? createdWallets[createdWallets.length - 1].address : undefined;
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!latestWalletAddress) return;
+      try {
+        const response = await fetch(`/api/balance?address=${latestWalletAddress}`);
+        const data = await response.json();
+        if (data.success) {
+          setBalance(data.balance);
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+      }
+    };
+
+    if (authenticated && latestWalletAddress) {
+      fetchBalance();
+      // Refresh balance every 30 seconds
+      const interval = setInterval(fetchBalance, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [authenticated, latestWalletAddress]);
 
   const createWallet = async () => {
     if (!user?.id) return;
@@ -90,7 +116,10 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 <p className="text-xl">Your Balance</p>
                 <p>{user?.id}</p>
-                <h1 className="text-7xl font-bold">1,234<span className="text-black/30">.23</span>$</h1>
+                <h1 className="text-7xl font-bold">
+                  {balance}
+                  <span className="text-black/30">ETH</span>
+                </h1>
               </div>
 
               <div className="flex flex-col gap-2">
