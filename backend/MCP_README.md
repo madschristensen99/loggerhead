@@ -58,7 +58,8 @@ Response:
 ```json
 {
   "EUR": "65%",
-  "USD": "35%"
+  "USD": "35%",
+  "reasoning": "Based on current analysis of market conditions, the EUR shows strength due to recent ECB policy decisions and lower inflation compared to the US. The USD remains attractive due to higher interest rates, but the EUR's stability in the current economic environment suggests a 65% allocation to EUR and 35% to USD for optimal risk-adjusted returns..."
 }
 ```
 
@@ -102,7 +103,7 @@ Add to your `claude_desktop_config.json`:
 
 ### GET /currency
 
-Returns investment recommendation probabilities.
+Returns investment recommendation probabilities with detailed reasoning.
 
 **Response:**
 ```json

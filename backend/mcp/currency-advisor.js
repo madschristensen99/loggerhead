@@ -20,15 +20,19 @@ class CurrencyAdvisorMCP {
       const analysis = await this.queryPerplexity();
       
       // Parse the analysis and extract probabilities
-      const probabilities = this.parseAnalysis(analysis);
+      const result = this.parseAnalysis(analysis);
       
-      console.log('📊 Analysis complete:', probabilities);
-      return probabilities;
+      console.log('📊 Analysis complete:', result);
+      return result;
       
     } catch (error) {
       console.error('❌ Error in currency analysis:', error);
       // Fallback to neutral if analysis fails
-      return { EUR: '50%', USD: '50%' };
+      return { 
+        EUR: '50%', 
+        USD: '50%',
+        reasoning: 'Analysis failed - using neutral probabilities as fallback'
+      };
     }
   }
 
@@ -118,7 +122,8 @@ class CurrencyAdvisorMCP {
         if (Math.abs(eurPercent + usdPercent - 100) <= 5) {
           return {
             EUR: `${eurPercent}%`,
-            USD: `${usdPercent}%`
+            USD: `${usdPercent}%`,
+            reasoning: analysis
           };
         }
       }
@@ -132,12 +137,17 @@ class CurrencyAdvisorMCP {
         
         return {
           EUR: `${eurPercent}%`,
-          USD: `${usdPercent}%`
+          USD: `${usdPercent}%`,
+          reasoning: analysis
         };
       }
       
       // If no clear percentages found, analyze sentiment
-      return this.analyzeSentiment(analysis);
+      const sentimentResult = this.analyzeSentiment(analysis);
+      return {
+        ...sentimentResult,
+        reasoning: analysis
+      };
       
     } catch (error) {
       console.error('Error parsing analysis:', error);

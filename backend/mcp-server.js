@@ -47,7 +47,7 @@ class CurrencyAdvisorMCPServer {
         content: [
           {
             type: 'text',
-            text: `Currency Investment Analysis Complete\n\nEUR: ${result.EUR}\nUSD: ${result.USD}\n\nThis analysis is based on real-time web data from Perplexity API, considering current market conditions, economic indicators, central bank policies, and market sentiment.`
+            text: `Currency Investment Analysis Complete\n\nEUR: ${result.EUR}\nUSD: ${result.USD}\n\nReasoning:\n${result.reasoning || 'No reasoning provided'}\n\nThis analysis is based on real-time web data from Perplexity API, considering current market conditions, economic indicators, central bank policies, and market sentiment.`
           }
         ]
       };
