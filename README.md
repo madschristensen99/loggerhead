@@ -1,6 +1,6 @@
 # Loggerhead: Euro-Dollar Yield Optimization Application
 
-Loggerhead is an advanced financial platform designed to optimize yields between Euro (EURC) and US Dollar (USDC) stablecoin investments across different blockchain networks. The system leverages AI-driven market analysis to determine optimal asset allocation and automates cross-chain transfers to maximize returns.
+Loggerhead is an advanced financial application designed to optimize yields between Euro (EURC) and US Dollar (USDC) stablecoin investments across different blockchain networks. The system leverages AI-driven market analysis to determine optimal asset allocation and automates cross-chain transfers to maximize returns.
 
 ## 🌟 Project Overview
 
