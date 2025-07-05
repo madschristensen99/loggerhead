@@ -8,6 +8,9 @@ import {
   UserCircleIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
+import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
+import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 
 export default function Home() {
   const { ready, authenticated, login, logout, user } = usePrivy();

@@ -1,7 +1,6 @@
 "use client";
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useFundWallet } from '@privy-io/react-auth';
+import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import { mainnet } from 'viem/chains';
