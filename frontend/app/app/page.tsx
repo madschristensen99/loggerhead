@@ -1,10 +1,10 @@
 "use client";
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { base, mainnet } from 'viem/chains';
+import { base } from 'viem/chains';
 import Link from 'next/link';
 
 interface CreatedWallet {
@@ -16,7 +16,6 @@ interface CreatedWallet {
 
 export default function App() {
   const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
   const { fundWallet } = useFundWallet();
   const [balance, setBalance] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -34,7 +33,7 @@ export default function App() {
       const response = await fetch(`/api/hello?ownerId=${user.id}`);
       const data = await response.json();
       if (data.success && data.wallet) {
-        setCreatedWallets(prev => [...prev, data.wallet]);
+        setCreatedWallets((prev: CreatedWallet[]) => [...prev, data.wallet]);
       }
     } catch (error) {
       console.error('Error creating wallet:', error);
@@ -52,7 +51,7 @@ export default function App() {
         const response = await fetch(`/api/wallets?ownerId=${user.id}`);
         const data = await response.json();
         if (data.success && data.wallets) {
-          const formattedWallets = data.wallets.map((wallet: any) => ({
+          const formattedWallets = data.wallets.map((wallet: { id: string; address: string; chainType: string; walletIndex?: number }) => ({
             id: wallet.id,
             address: wallet.address,
             chainType: wallet.chainType,

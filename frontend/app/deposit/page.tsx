@@ -25,19 +25,8 @@ const normalizePrivateKey = (key: string) => {
   return key.startsWith('0x') ? key : `0x${key}`;
 };
 
-// Helper function to validate amount input
-const isValidAmount = (value: string): boolean => {
-  try {
-    if (!value) return false;
-    if (value.includes('.')) {
-      const [, decimals] = value.split('.');
-      if (decimals.length > 18) return false;
-    }
-    return !isNaN(Number(value));
-  } catch {
-    return false;
-  }
-};
+// Helper function to normalize private key format
+
 
 export default function DepositPage() {
   const { ready, authenticated, user } = usePrivy();
