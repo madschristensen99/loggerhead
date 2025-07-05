@@ -11,9 +11,9 @@ dotenv.config();
 
 // Log environment variables (without secrets)
 console.log('Environment loaded:');
-console.log('PRIVY_API_KEY:', process.env.PRIVY_API_KEY ? '✓ Set' : '✗ Not set');
-console.log('PRIVY_APP_SECRET:', process.env.PRIVY_APP_SECRET ? '✓ Set' : '✗ Not set');
-console.log('BASE_RPC:', process.env.BASE_RPC ? '✓ Set' : '✗ Not set');
+console.log('PRIVY_API_KEY:', process.env.PRIVY_API_KEY);
+console.log('PRIVY_APP_SECRET:', process.env.PRIVY_APP_SECRET);
+console.log('BASE_RPC:', process.env.BASE_RPC);
 
 // USDC token contract address on Base
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';

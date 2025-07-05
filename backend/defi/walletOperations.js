@@ -168,15 +168,23 @@ async function swapUSDCForToken(walletAddress, amount, targetToken) {
  */
 async function getPortfolioRecommendation(wallet) {
   try {
-    // Query AI (simulator) for desired portfolio balances
-    const recommendation = await portfolioSimulator.generatePortfolioRecommendation(wallet);
+    // Query Claude AI Orchestrator for comprehensive portfolio recommendation
+    const recommendation = await portfolioSimulator.generateComprehensiveRecommendation(wallet);
     
-    console.log(`Portfolio recommendation for wallet ${wallet.address}:`);
+    console.log(`🤖 AI Portfolio recommendation for wallet ${wallet.address}:`);
     console.log(`  Current Balance: ${wallet.usdcBalanceFormatted} USDC`);
+    console.log(`  AI Source: ${recommendation.source}`);
+    console.log(`  Confidence Level: ${recommendation.confidenceLevel}/10`);
+    console.log(`  Time Horizon: ${recommendation.timeHorizon}`);
+    
+    if (recommendation.fallback) {
+      console.log(`  ⚠️  Using fallback allocation (AI service unavailable)`);
+    }
+    
     console.log('  Recommended Portfolio:');
     
     for (const [asset, percentage] of Object.entries(recommendation.recommendedPortfolio)) {
-      console.log(`    ${asset}: ${percentage * 100}%`);
+      console.log(`    ${asset}: ${(percentage * 100).toFixed(1)}%`);
     }
     
     console.log('  Recommended Amounts:');
@@ -186,10 +194,29 @@ async function getPortfolioRecommendation(wallet) {
     }
     
     console.log(`  Reasoning: ${recommendation.reasoning}`);
+    console.log(`  Risk Assessment: ${recommendation.riskAssessment}`);
+    
+    if (recommendation.alternativeScenarios && recommendation.alternativeScenarios.length > 0) {
+      console.log('  Alternative Scenarios:');
+      recommendation.alternativeScenarios.forEach((scenario, index) => {
+        console.log(`    ${index + 1}. ${scenario}`);
+      });
+    }
+    
+    // Display AI analysis if available
+    if (recommendation.aiAnalysis) {
+      console.log(`  AI System Status: ${recommendation.aiAnalysis.aiStatus}`);
+      if (recommendation.aiAnalysis.mcpServers) {
+        console.log('  MCP Servers:');
+        Object.entries(recommendation.aiAnalysis.mcpServers).forEach(([server, status]) => {
+          console.log(`    ${server}: ${status ? '✅' : '❌'}`);
+        });
+      }
+    }
     
     return recommendation;
   } catch (error) {
-    console.error(`Error getting portfolio recommendation for wallet ${wallet.address}:`, error.message);
+    console.error(`❌ Error getting portfolio recommendation for wallet ${wallet.address}:`, error.message);
     return null;
   }
 }
