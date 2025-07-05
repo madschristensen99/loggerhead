@@ -43,8 +43,8 @@ export default function DepositPage() {
   const [success, setSuccess] = useState(false);
 
   const handleDeposit = async () => {
-    if (!amount) {
-      setError("Please enter an amount");
+    if (!amount || !isValidAmount(amount)) {
+      setError("Please enter a valid amount");
       return;
     }
 
@@ -147,7 +147,12 @@ export default function DepositPage() {
                 type="text"
                 id="amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue === '' || isValidAmount(newValue)) {
+                    setAmount(newValue);
+                  }
+                }}
                 placeholder="Enter amount (e.g. 1.5)"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />

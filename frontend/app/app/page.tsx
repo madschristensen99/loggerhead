@@ -1,75 +1,21 @@
 "use client";
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import { mainnet } from 'viem/chains';
 import Link from 'next/link';
 
-interface CreatedWallet {
-  id: string;
-  address: string;
-  chainType: string;
-  walletIndex?: number;
-}
-
 export default function App() {
   const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
   const { fundWallet } = useFundWallet();
   const [balance, setBalance] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [createdWallets, setCreatedWallets] = useState<CreatedWallet[]>([]);
-  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [isFundingWallet, setIsFundingWallet] = useState(false);
   const [poolBalance, setPoolBalance] = useState<string | null>(null);
 
-  const createWallet = async () => {
-    if (!user?.id) return;
-    
-    setIsCreatingWallet(true);
-    try {
-      const response = await fetch(`/api/hello?ownerId=${user.id}`);
-      const data = await response.json();
-      if (data.success && data.wallet) {
-        setCreatedWallets(prev => [...prev, data.wallet]);
-      }
-    } catch (error) {
-      console.error('Error creating wallet:', error);
-    } finally {
-      setIsCreatingWallet(false);
-    }
-  };
-
-  // Fetch user wallets when component loads
-  useEffect(() => {
-    const fetchUserWallets = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const response = await fetch(`/api/wallets?ownerId=${user.id}`);
-        const data = await response.json();
-        if (data.success && data.wallets) {
-          const formattedWallets = data.wallets.map((wallet: any) => ({
-            id: wallet.id,
-            address: wallet.address,
-            chainType: wallet.chainType,
-            walletIndex: wallet.walletIndex
-          }));
-          setCreatedWallets(formattedWallets);
-        }
-      } catch (error) {
-        console.error('Error fetching wallets:', error);
-      }
-    };
-
-    if (authenticated && user?.id) {
-      fetchUserWallets();
-    }
-  }, [authenticated, user]);
-
+  // Fetch balances when component loads
   useEffect(() => {
     console.log('Effect triggered. Auth status:', authenticated, 'Has private key:', !!user?.customMetadata?.privateKey);
     
@@ -93,12 +39,6 @@ export default function App() {
           console.log('Initializing provider and wallet...');
           const provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org');
           const wallet = new ethers.Wallet(privateKey, provider);
-          
-          // Get public key from private key using SigningKey
-          const signingKey = new ethers.SigningKey(privateKey);
-          const publicKey = signingKey.publicKey;
-          console.log('Public Key:', publicKey);
-          setPublicKey(publicKey);
           
           console.log('Wallet address:', wallet.address);
           setWalletAddress(wallet.address);
@@ -135,7 +75,6 @@ export default function App() {
         } catch (error) {
           console.error('Error fetching balances:', error);
           setBalance('Error');
-          setPublicKey(null);
           setWalletAddress(null);
           setPoolBalance('Error');
         }
@@ -259,7 +198,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     setIsFundingWallet(true);
-                    fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E"/*publicKey || ''*/, {
+                    fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
                       chain: mainnet,
                       amount: '0.01' // Default amount in ETH
                     })

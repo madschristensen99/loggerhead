@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ethers } from 'ethers';
 import axios from 'axios';
-import { Transaction } from 'ethers';
 
 interface QuoteRoute {
   route: string;
@@ -43,7 +42,6 @@ const PRIVATE_KEY = process.env.NEXT_PUBLIC_PRIVATE_KEY || '0x235dc322af4475c1eb
 
 // Initialize providers
 const flowProvider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org');
-const baseProvider = new ethers.JsonRpcProvider('https://mainnet.base.org');
 const wallet = new ethers.Wallet(PRIVATE_KEY, flowProvider); // Connect to Flow network
 
 // Utility function to format amount to wei (6 decimals for USDC)
@@ -52,7 +50,7 @@ const formatAmount = (amount: string): string => {
     const amountFloat = parseFloat(amount);
     const amountWei = Math.floor(amountFloat * 1000000).toString();
     return amountWei;
-  } catch (error) {
+  } catch {
     return '0';
   }
 };
@@ -63,7 +61,7 @@ const formatDisplayAmount = (amount: string): string => {
   try {
     const amountNum = parseFloat(amount);
     return (amountNum / 1000000).toFixed(6);
-  } catch (error) {
+  } catch {
     return '0';
   }
 };
@@ -75,10 +73,8 @@ export default function Bridge() {
   const [error, setError] = useState<string | null>(null);
   const [executing, setExecuting] = useState(false);
   const [balance, setBalance] = useState<string>('0');
-  const [loadingBalance, setLoadingBalance] = useState(false);
 
   const getBalance = async () => {
-    setLoadingBalance(true);
     try {
       const usdcContract = new ethers.Contract(
         FLOW_STG_USDC,
@@ -87,10 +83,8 @@ export default function Bridge() {
       );
       const balanceWei = await usdcContract.balanceOf(wallet.address);
       setBalance(balanceWei.toString());
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching balance:', err);
-    } finally {
-      setLoadingBalance(false);
     }
   };
 
@@ -137,9 +131,13 @@ export default function Bridge() {
 
       setQuote(validQuote);
       console.log('Quote received:', validQuote);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching quote:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to get quote');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || err.message || 'Failed to get quote');
+      } else {
+        setError('Failed to get quote');
+      }
     } finally {
       setLoading(false);
     }
@@ -183,46 +181,6 @@ export default function Bridge() {
       // Prepare the destination address bytes
       const dstAddress = ethers.solidityPacked(['address'], [wallet.address]);
 
-      console.log('meow')
-
-      // Sign message for verification
-      //const messageHash = ethers.keccak256(ethers.toUtf8Bytes('Bridge USDC from Flow to Base'));
-
-      console.log(quote)
-
-      quote.steps.map(async (step) => {
-        console.log(step)
-        let meow = await flowProvider.broadcastTransaction(step.transaction);
-        console.log(meow)
-      })
-
-      /*
-      console.log(quote)
-      const tx2 = {
-        to: quote.to,
-        data: quote.data,
-        value: quote.value || 0,
-        gasLimit: quote.gasLimit,
-        gasPrice: quote.gasPrice
-      };*/
-
-      console.log('meow meow')
-
-      const signature = await wallet.signMessage(tx2);
-      console.log('Message signed:', signature);
-
-      const serializedTx2 = '0x' + signature.serialize()
-
-      console.log('meow 2')
-      const receipt2 = await flowProvider.broadcastTransaction(serializedTx2);
-
-      console.log('meow 3')
-
-      console.log('Transaction submitted:', receipt2.hash);
-
-      const txReceipt3 = await receipt2.wait();
-      console.log('Transaction confirmed:', txReceipt3);
-
       // Create and sign transaction according to Stargate docs
       const tx = {
         to: ROUTER_ADDRESS,
@@ -235,38 +193,31 @@ export default function Bridge() {
           minAmount,
           [0, 0, '0x'],
           dstAddress,
-          signature // Include signature in payload
+          '0x' // Empty signature for now
         ]),
-        value: messageFee,
+        value: ethers.parseEther('0'), // No value needed for this transaction
       };
       
       const signedTx = await wallet.signTransaction(tx);
-      const serializedTx = signedTx;
       
-      // Submit and monitor transaction
-      const receipt = await flowProvider.sendTransaction(serializedTx);
-      console.log('Transaction submitted:', receipt.hash);
+      // Submit transaction
+      const txResponse = await flowProvider.broadcastTransaction(signedTx);
+      console.log('Transaction submitted:', txResponse.hash);
       
       // Wait for confirmation
-      const txReceipt = await receipt.wait();
+      const txReceipt = await txResponse.wait();
       console.log('Transaction confirmed:', txReceipt);
 
       // Reset form state on success
       setQuote(null);
       setAmount('');
       await getBalance(); // Refresh balance after successful swap
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error executing bridge:', err);
-      setError(err.reason || err.message || 'Failed to execute bridge');
-      
-      // Log detailed error information
-      if (err.transaction) {
-        console.error('Failed transaction details:', {
-          from: err.transaction.from,
-          to: err.transaction.to,
-          data: err.transaction.data,
-          value: err.transaction.value?.toString()
-        });
+      if (err instanceof Error) {
+        setError(err.message || 'Failed to execute bridge');
+      } else {
+        setError('Failed to execute bridge');
       }
     } finally {
       setExecuting(false);
@@ -313,6 +264,12 @@ export default function Bridge() {
                       USDC
                     </div>
                   </div>
+                  <button
+                    onClick={handleMaxClick}
+                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Max: {formatDisplayAmount(balance)} USDC
+                  </button>
                 </div>
               </div>
 
