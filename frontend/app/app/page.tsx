@@ -4,7 +4,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { mainnet } from 'viem/chains';
+import { base, mainnet } from 'viem/chains';
 import Link from 'next/link';
 
 interface CreatedWallet {
@@ -91,7 +91,7 @@ export default function App() {
       if (typeof privateKey === 'string') {
         try {
           console.log('Initializing provider and wallet...');
-          const provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org');
+          const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
           const wallet = new ethers.Wallet(privateKey, provider);
           
           // Get public key from private key using SigningKey
@@ -109,9 +109,9 @@ export default function App() {
             "function decimals() view returns (uint8)"
           ];
           
-          // Get balance of USDf token
-          const contractAddress = '0x2aaBea2058b5aC2D339b163C6Ab6f2b6d53aabED';
-          const tokenContract = new ethers.Contract(contractAddress, tokenAbi, provider);
+          // Get balance of USDC token on Base
+          const usdcContractAddress = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          const tokenContract = new ethers.Contract(usdcContractAddress, tokenAbi, provider);
           
           console.log('Checking balance for address:', wallet.address);
           const decimals = await tokenContract.decimals();
@@ -120,16 +120,16 @@ export default function App() {
           const balanceWei = await tokenContract.balanceOf(wallet.address);
           console.log('Token Balance in Wei:', balanceWei.toString());
           const balanceFormatted = ethers.formatUnits(balanceWei, decimals);
-          console.log('Token Balance in USDf:', balanceFormatted);
+          console.log('Token Balance in USDC:', balanceFormatted);
           setBalance(balanceFormatted);
 
-          // Get pool balance
-          const poolContractAddress = '0xe43fe00AEA059f3A756CF556655B5A27FAf9bEC5';
-          const poolContract = new ethers.Contract(poolContractAddress, tokenAbi, provider);
+          // Get EURC balance
+          const eurcContractAddress = '0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c';
+          const poolContract = new ethers.Contract(eurcContractAddress, tokenAbi, provider);
           const poolBalanceWei = await poolContract.balanceOf(wallet.address);
-          console.log('Pool Balance in Wei:', poolBalanceWei.toString());
+          console.log('EURC Balance in Wei:', poolBalanceWei.toString());
           const poolBalanceFormatted = ethers.formatUnits(poolBalanceWei, decimals);
-          console.log('Pool Balance in USDf:', poolBalanceFormatted);
+          console.log('EURC Balance:', poolBalanceFormatted);
           setPoolBalance(poolBalanceFormatted);
 
         } catch (error) {
@@ -232,7 +232,7 @@ export default function App() {
                     <p className="text-sm text-gray-500">Wallet Address</p>
                     {walletAddress ? (
                       <a 
-                        href={`https://evm-testnet.flowscan.io/address/${walletAddress}`}
+                        href={`https://basescan.org/address/${walletAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-blue-600 hover:text-blue-800 underline break-all"
@@ -276,7 +276,7 @@ export default function App() {
                       onClick={() => {
                         setIsFundingWallet(true);
                         fundWallet(createdWallets[createdWallets.length - 1].address, {
-                          chain: mainnet,
+                          chain: base,
                           amount: '0.01'
                         })
                           .then(() => {
@@ -302,7 +302,7 @@ export default function App() {
                   href="/deposit"
                   className="inline-block px-8 py-4 bg-blue-600 text-white rounded-full font-semibold text-lg hover:bg-blue-700 transition-colors"
                 >
-                  Deposit USDF
+                  Deposit USDC
                 </Link>
               </div>
             </div>
