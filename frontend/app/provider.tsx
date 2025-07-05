@@ -2,6 +2,7 @@
 
 import {PrivyProvider} from '@privy-io/react-auth';
 import { defineChain } from 'viem';
+import { mainnet } from 'viem/chains';
 
 const flowEVM = defineChain({
   id: 646,
@@ -27,7 +28,7 @@ export default function Providers({children}: {children: React.ReactNode}) {
       appId="cmcp6mwhf01lll40mdz8dl046"
       config={{
         defaultChain: flowEVM,
-        supportedChains: [flowEVM]
+        supportedChains: [flowEVM, mainnet]
       }}
     >
       {children}
