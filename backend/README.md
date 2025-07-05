@@ -1,13 +1,12 @@
 # Backend
 
-This is basically divided in two parts, the defi folder which integrates privy and stargate and everything else which runs an MCP to know whether the exchange rate for Euro is better than the USD
-and vice versa.
+This is basically divided in two parts, the defi folder which integrates privy and stargate and everything else which runs an express app that will query perplexity ai to know whether the exchange rate for Euro is better than the USD and vice versa.
 
-## MCP
+## Express app
 
-The objective of this MCP is to tell whether you should buy Euro or US dollar according to recent news.
+The objective of this Express app is to tell whether you should buy Euro or US dollar according to recent news.
 
-The mcp will spit out a json that looks like this:
+The app will spit out a json that looks like this:
 
 ```json
 EUR: <string>
