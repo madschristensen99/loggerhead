@@ -76,12 +76,27 @@ export default function Home() {
   }, [authenticated, user]);
 
   useEffect(() => {
-    const fetchBalance = async () => {
+    console.log('Effect triggered. Auth status:', authenticated, 'Has private key:', !!user?.customMetadata?.privateKey);
+    
+    if (!authenticated || !user?.customMetadata?.privateKey) {
+      console.log('Skipping balance fetch - not authenticated or no private key');
+      return;
+    }
+
+    console.log('Conditions met, fetching balances...');
+    const fetchBalances = async () => {
       const privateKey = user?.customMetadata?.privateKey;
+      console.log('Checking private key availability:', !!privateKey);
+      
+      if (!privateKey) {
+        console.log('Private key not yet available');
+        return;
+      }
+
       if (typeof privateKey === 'string') {
         try {
-          // Flow EVM Testnet RPC URL - official endpoint
-          const provider = new ethers.JsonRpcProvider('https://testnet.evm.nodes.onflow.org');
+          console.log('Initializing provider and wallet...');
+          const provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org');
           const wallet = new ethers.Wallet(privateKey, provider);
           
           // Get public key from private key using SigningKey
@@ -93,25 +108,46 @@ export default function Home() {
           console.log('Wallet address:', wallet.address);
           setWalletAddress(wallet.address);
 
-          // Get balance of specific contract
+          // USDf token contract ABI (minimal for balanceOf)
+          const tokenAbi = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function decimals() view returns (uint8)"
+          ];
+          
+          // Get balance of USDf token
           const contractAddress = '0x2aaBea2058b5aC2D339b163C6Ab6f2b6d53aabED';
-          const balanceWei = await provider.getBalance(contractAddress);
-          console.log('Contract Balance in Wei:', balanceWei.toString());
-          const balanceEth = ethers.formatEther(balanceWei);
-          console.log('Contract Balance in FLOW:', balanceEth);
-          setBalance(balanceEth);
+          const tokenContract = new ethers.Contract(contractAddress, tokenAbi, provider);
+          
+          console.log('Checking balance for address:', wallet.address);
+          const decimals = await tokenContract.decimals();
+          console.log('Token decimals:', decimals);
+          
+          const balanceWei = await tokenContract.balanceOf(wallet.address);
+          console.log('Token Balance in Wei:', balanceWei.toString());
+          const balanceFormatted = ethers.formatUnits(balanceWei, decimals);
+          console.log('Token Balance in USDf:', balanceFormatted);
+          setBalance(balanceFormatted);
+
+          // Get pool balance
+          const poolContractAddress = '0xe43fe00AEA059f3A756CF556655B5A27FAf9bEC5';
+          const poolContract = new ethers.Contract(poolContractAddress, tokenAbi, provider);
+          const poolBalanceWei = await poolContract.balanceOf(wallet.address);
+          console.log('Pool Balance in Wei:', poolBalanceWei.toString());
+          const poolBalanceFormatted = ethers.formatUnits(poolBalanceWei, decimals);
+          console.log('Pool Balance in USDf:', poolBalanceFormatted);
+          setPoolBalance(poolBalanceFormatted);
+
         } catch (error) {
-          console.error('Error fetching balance:', error);
+          console.error('Error fetching balances:', error);
           setBalance('Error');
           setPublicKey(null);
           setWalletAddress(null);
+          setPoolBalance('Error');
         }
       }
     };
 
-    if (authenticated && user?.customMetadata?.privateKey) {
-      fetchBalance();
-    }
+    fetchBalances();
   }, [authenticated, user]);
 
   console.log(user);
@@ -159,6 +195,23 @@ export default function Home() {
                       {balance === 'Error' ? 'Error fetching balance' : (
                         <>
                           {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                          <span className="text-black/30"> USDf</span>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    'Loading...'
+                  )}
+                </h1>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xl">Your Pool Balance</p>
+                <h1 className="text-7xl font-bold">
+                  {poolBalance ? (
+                    <>
+                      {poolBalance === 'Error' ? 'Error fetching pool balance' : (
+                        <>
+                          {parseFloat(poolBalance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
                           <span className="text-black/30"> USDf</span>
                         </>
                       )}
@@ -233,6 +286,16 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 <p className="text-xl">Your Private Key</p>
                 <p className="font-mono break-all text-black">{user?.customMetadata?.privateKey}</p>
+              </div>
+              <p className="text-xl">Your Public Key</p>
+              <p className="font-mono break-all text-black">{publicKey}</p>
+              <div className="mt-4">
+                <a
+                  href="/deposit"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Deposit USDF
+                </a>
               </div>
             </div>
           </div>
