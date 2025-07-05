@@ -144,28 +144,27 @@ export default function App() {
                     'Loading...'
                   )}
                 </div>
-              </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Pool Balance (Yield)</h2>
-                <div className="text-4xl font-bold text-blue-600">
-                  {poolBalance ? (
-                    <>
-                      {poolBalance === 'Error' ? 'Error fetching pool balance' : (
-                        <>
-                          {parseFloat(poolBalance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                          <span className="text-blue-400"> USDf</span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    'Loading...'
-                  )}
+                <div className="mt-4">
+                  <h2 className="font-semibold mb-4">Pool Balance (Yield)</h2>
+                  <div className="text-xl font-bold text-blue-600">
+                    {poolBalance ? (
+                      <>
+                        {poolBalance === 'Error' ? 'Error fetching pool balance' : (
+                          <>
+                            {parseFloat(poolBalance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                            <span className="text-blue-400"> USDf</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      'Loading...'
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-6 md:col-span-2">
-                <h2 className="text-xl font-semibold mb-4">Wallet Information</h2>
+              <div className="">
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500">Wallet Address</p>
@@ -176,7 +175,7 @@ export default function App() {
                         rel="noopener noreferrer"
                         className="font-mono text-blue-600 hover:text-blue-800 underline break-all"
                       >
-                        {walletAddress}
+                        Check the wallet on Explorer
                       </a>
                     ) : (
                       <p className="font-mono text-gray-400">Loading...</p>
@@ -185,38 +184,36 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="md:col-span-2 text-center">
+              <div className="flex gap-2">
                 <Link
                   href="/deposit"
-                  className="inline-block px-8 py-4 bg-blue-600 text-white rounded-full font-semibold text-lg hover:bg-blue-700 transition-colors"
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md font-semibold text-lg hover:bg-blue-700 transition-colors"
                 >
                   Flow Yield
                 </Link>
-              </div>
 
-              <div className="mt-4">
-                <button
-                  onClick={() => {
-                    setIsFundingWallet(true);
-                    fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
-                      chain: mainnet,
-                      amount: '0.01' // Default amount in ETH
-                    })
-                      .then(() => {
-                        setIsFundingWallet(false);
-                        console.log('Funding complete');
+                  <button
+                    onClick={() => {
+                      setIsFundingWallet(true);
+                      fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
+                        chain: mainnet,
+                        amount: '0.01' // Default amount in ETH
                       })
-                      .catch((error: Error) => {
-                        setIsFundingWallet(false);
-                        console.error('Funding error:', error);
-                      });
-                  }}
-                  disabled={isFundingWallet}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-green-400 mt-2"
-                >
-                  {isFundingWallet ? 'Funding Wallet...' : 'Fund Wallet'}
-                </button>
-              </div>
+                        .then(() => {
+                          setIsFundingWallet(false);
+                          console.log('Funding complete');
+                        })
+                        .catch((error: Error) => {
+                          setIsFundingWallet(false);
+                          console.error('Funding error:', error);
+                        });
+                    }}
+                    disabled={isFundingWallet}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-green-400 text-bold"
+                  >
+                    {isFundingWallet ? 'Funding Wallet...' : 'Fund Wallet'}
+                  </button>
+                </div>
             </div>
           </div>
         )}
