@@ -1,21 +1,19 @@
 {
-  "name": "loggerhead",
+  "name": "loggerhead-defi",
   "version": "1.0.0",
-  "description": "Server for managing Privy wallets and Stargate Finance cross-chain transfers",
-  "main": "src/index.js",
+  "description": "DeFi wallet server for Loggerhead",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
-    "demo": "node start.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "axios": "^1.6.0",
+    "@privy-io/server-auth": "^1.28.2",
+    "axios": "^1.10.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "ethers": "^5.7.2",
-    "node-fetch": "^3.3.2"
-  },
-  "devDependencies": {
+    "morgan": "^1.10.0",
     "nodemon": "^3.0.1"
   }
 }
