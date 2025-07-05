@@ -271,7 +271,7 @@ async function main() {
         from: USDC_ADDRESS, 
         to: EURC_ADDRESS, 
         stable: false,
-        factory: "0x0000000000000000000000000000000000000000"
+        factory: "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43"
       }];
       
       const amountsOut = await routerContract.read.getAmountsOut([swapAmount, route]);
