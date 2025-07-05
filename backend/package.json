@@ -5,11 +5,15 @@
   "scripts": {
     "start": "node ./bin/www",
     "mcp": "node ./mcp-server.js",
-    "test-mcp": "node -e \"const { CurrencyAdvisorMCP } = require('./mcp/currency-advisor'); new CurrencyAdvisorMCP().execute().then(console.log).catch(console.error);\""
+    "test-mcp": "node -e \"const { CurrencyAdvisorMCP } = require('./mcp/currency-advisor'); new CurrencyAdvisorMCP().execute().then(console.log).catch(console.error);\"",
+    "test-orchestrator": "node test-orchestrator.js",
+    "health-orchestrator": "node -e \"const ClaudeOrchestrator = require('./claude-orchestrator'); new ClaudeOrchestrator().healthCheck().then(console.log).catch(console.error);\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@anthropic-ai/sdk": "^0.18.0",
     "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "@modelcontextprotocol/sdk": "^0.4.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "express": "~4.16.1",
