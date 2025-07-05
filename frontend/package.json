@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@onflow/fcl": "^1.19.0",
-    "@onflow/types": "^1.4.1",
+    "@onflow/fcl-core": "^1.20.0",
     "@privy-io/react-auth": "^2.17.3",
     "@privy-io/server-auth": "^1.28.2",
     "class-variance-authority": "^0.7.1",
@@ -18,6 +18,7 @@
     "dotenv": "^17.0.1",
     "elliptic": "^6.6.1",
     "ethers": "^6.15.0",
+    "flow-cadut": "^0.1.16-alpha.4",
     "lucide-react": "^0.525.0",
     "next": "15.3.5",
     "react": "^19.0.0",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@onflow/types": "^1.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/elliptic": "^6.4.18",
     "@types/node": "^20",

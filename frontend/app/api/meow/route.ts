@@ -1,38 +1,53 @@
-import { ec as EC } from "elliptic"
+import { ethers } from "ethers";
 
-const ec = new EC("p256")
+// Flow EVM RPC endpoint
+const provider = new ethers.JsonRpcProvider("https://rpc-testnet.flow.com");
 
-// Générer une nouvelle paire de clés Flow
-function generateKeyPair() {
-  const keypair = ec.genKeyPair()
-  const privateKey = keypair.getPrivate().toString('hex')
-  const publicKey = keypair.getPublic('hex').replace('04', '') // Remove '04' prefix
-  return { privateKey, publicKey }
-}
+// Hardcoded values for simplicity
+const FLOW_CONFIG = {
+  privateKey: "private key",
+};
 
 export async function GET() {
   try {
-    // Générer une nouvelle paire de clés
-    const { privateKey, publicKey } = generateKeyPair()
+    // Create wallet from private key
+    const wallet = new ethers.Wallet(FLOW_CONFIG.privateKey, provider);
+
+    // Simple transaction that logs a message
+    const tx = {
+      to: wallet.address,  // Send to self
+      value: 0,  // No value transfer
+      data: "0x" + Buffer.from("Hello from Flow EVM!").toString("hex")  // Message in hex
+    };
+
+    // Send transaction
+    const txResponse = await wallet.sendTransaction(tx);
     
-    return new Response(JSON.stringify({ 
-      success: true, 
-      data: {
-        privateKey,
-        publicKey,
-        nextStep: "go on https://testnet-faucet.onflow.org/"
+    // Wait for transaction to be mined
+    const receipt = await txResponse.wait();
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: receipt
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
       }
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    );
+
   } catch (error: any) {
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      details: error.toString()
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    console.error('Transaction error:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        details: error.toString()
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 } 
