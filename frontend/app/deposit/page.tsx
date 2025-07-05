@@ -8,15 +8,10 @@ import { useRouter } from 'next/navigation';
 // ABIs
 const erc20Abi = [
   "function approve(address spender, uint256 amount) external returns (bool)",
-  "function balanceOf(address account) view returns (uint256)",
-  "function decimals() view returns (uint8)"
+  "function balanceOf(address account) view returns (uint256)"
 ];
 
-const aerodromeRouterAbi = [
-  "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)"
-];
-
-const aavePoolAbi = [
+const poolAbi = [
   "function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external"
 ];
 
@@ -25,8 +20,19 @@ const normalizePrivateKey = (key: string) => {
   return key.startsWith('0x') ? key : `0x${key}`;
 };
 
-// Helper function to normalize private key format
-
+// Helper function to validate amount input
+const isValidAmount = (value: string): boolean => {
+  try {
+    if (!value) return false;
+    if (value.includes('.')) {
+      const [, decimals] = value.split('.');
+      if (decimals.length > 18) return false;
+    }
+    return !isNaN(Number(value));
+  } catch {
+    return false;
+  }
+};
 
 export default function DepositPage() {
   const { ready, authenticated, user } = usePrivy();
@@ -54,78 +60,45 @@ export default function DepositPage() {
 
       const normalizedPrivateKey = normalizePrivateKey(privateKey);
       
-      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+      const provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org');
       const wallet = new ethers.Wallet(normalizedPrivateKey, provider);
       console.log('Wallet initialized:', wallet.address);
 
-      // Addresses on Base
-      const usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-      const eurcAddress = "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c";
-      const aavePoolAddress = "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5";
-      const aerodromeRouterAddress = "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43";
+      // Addresses
+      const poolAddress = "0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d";
+      const usdfAddress = "0x2aaBea2058b5aC2D339b163C6Ab6f2b6d53aabED";
 
       // Contracts
-      const usdc = new ethers.Contract(usdcAddress, erc20Abi, wallet);
-      const eurc = new ethers.Contract(eurcAddress, erc20Abi, wallet);
-      const aavePool = new ethers.Contract(aavePoolAddress, aavePoolAbi, wallet);
-      const aerodromeRouter = new ethers.Contract(aerodromeRouterAddress, aerodromeRouterAbi, wallet);
+      const usdf = new ethers.Contract(usdfAddress, erc20Abi, wallet);
+      const pool = new ethers.Contract(poolAddress, poolAbi, wallet);
 
-      // Check USDC balance before proceeding
-      const decimals = await usdc.decimals();
-      const balance = await usdc.balanceOf(wallet.address);
-      const humanBalance = ethers.formatUnits(balance, decimals);
-      console.log('Current USDC balance:', humanBalance);
+      // Check USDF balance before proceeding
+      const balance = await usdf.balanceOf(wallet.address);
+      const humanBalance = ethers.formatEther(balance);
+      console.log('Current USDF balance:', humanBalance);
 
-      if (balance < ethers.parseUnits(amount, decimals)) {
-        throw new Error(`Insufficient USDC balance. You have ${humanBalance} USDC`);
+      if (balance < ethers.parseEther(amount)) {
+        throw new Error(`Insufficient USDF balance. You have ${humanBalance} USDF`);
       }
 
-      // Convert amount to proper decimal units
-      const amountInWei = ethers.parseUnits(amount, decimals);
-      console.log('Amount to trade in wei:', amountInWei.toString());
+      // Convert amount to wei (1 ether = 10^18 wei)
+      const amountInWei = ethers.parseEther(amount);
+      console.log('Amount to deposit in wei:', amountInWei.toString());
 
       // Steps
-      // 1. Approve USDC for Aerodrome Router
-      console.log('Approving USDC spend for Aerodrome...');
-      const approveAerodromeTx = await usdc.approve(aerodromeRouterAddress, amountInWei);
-      console.log('Approval transaction hash:', approveAerodromeTx.hash);
-      await approveAerodromeTx.wait();
-      console.log('Aerodrome approval confirmed');
+      // 1. Approve
+      console.log('Approving USDF spend...');
+      const approveTx = await usdf.approve(poolAddress, amountInWei);
+      console.log('Approval transaction hash:', approveTx.hash);
+      await approveTx.wait();
+      console.log('Approval confirmed');
 
-      // 2. Swap USDC to EURC on Aerodrome
-      console.log('Swapping USDC to EURC on Aerodrome...');
-      const path = [usdcAddress, eurcAddress];
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes from now
-      const swapTx = await aerodromeRouter.swapExactTokensForTokens(
-        amountInWei,
-        0, // Accept any amount of EURC (we should use a better minimum in production)
-        path,
-        wallet.address,
-        deadline
-      );
-      console.log('Swap transaction hash:', swapTx.hash);
-      await swapTx.wait();
-      console.log('Swap confirmed');
-      
-      // 3. Check EURC balance after swap
-      const eurcBalance = await eurc.balanceOf(wallet.address);
-      const eurcDecimals = await eurc.decimals();
-      const humanEurcBalance = ethers.formatUnits(eurcBalance, eurcDecimals);
-      console.log('EURC balance after swap:', humanEurcBalance);
-      
-      // 4. Approve EURC for Aave
-      console.log('Approving EURC spend for Aave...');
-      const approveAaveTx = await eurc.approve(aavePoolAddress, eurcBalance);
-      console.log('Aave approval transaction hash:', approveAaveTx.hash);
-      await approveAaveTx.wait();
-      console.log('Aave approval confirmed');
-      
-      // 5. Supply EURC to Aave
-      console.log('Supplying EURC to Aave...');
-      const supplyTx = await aavePool.supply(eurcAddress, eurcBalance, wallet.address, 0);
+      // 2. Supply
+      console.log('Supplying USDF to pool...');
+      const supplyTx = await pool.supply(usdfAddress, amountInWei, wallet.address, 0);
       console.log('Supply transaction hash:', supplyTx.hash);
       await supplyTx.wait();
-      console.log('Supply to Aave confirmed');
+      console.log('Supply confirmed');
 
       setSuccess(true);
     } catch (err) {
@@ -149,7 +122,7 @@ export default function DepositPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Auto Trade & Deposit</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Deposit USDF</h1>
             <button
               onClick={() => router.push('/')}
               className="text-blue-600 hover:text-blue-800"
@@ -188,7 +161,7 @@ export default function DepositPage() {
 
             {success && (
               <div className="text-green-600 text-sm">
-                Successfully traded {amount} USDC to EURC and deposited to Aave!
+                Successfully deposited {amount} USDF!
               </div>
             )}
 
@@ -199,7 +172,7 @@ export default function DepositPage() {
                 isLoading || !amount ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {isLoading ? 'Processing...' : 'Auto Trade & Deposit to Aave'}
+              {isLoading ? 'Processing...' : 'Deposit'}
             </button>
           </div>
         </div>
