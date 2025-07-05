@@ -36,13 +36,15 @@ export async function GET() {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error instanceof Error ? error.toString() : String(error);
     console.error('Transaction error:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
-        details: error.toString()
+        error: errorMessage,
+        details: errorDetails
       }),
       {
         status: 500,

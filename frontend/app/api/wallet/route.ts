@@ -10,7 +10,7 @@ const privy = new PrivyClient(
 export async function GET() {
   try {
     // Create a new Ethereum wallet
-    const { id, address, chainType } = await privy.walletApi.create({ chainType: 'flowMainnet' });
+    const { id, address, chainType } = await privy.walletApi.create({ chainType: 'ethereum' });
 
     return NextResponse.json({
       success: true,

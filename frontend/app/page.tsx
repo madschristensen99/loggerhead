@@ -15,10 +15,12 @@ interface CreatedWallet {
 
 export default function Home() {
   const { ready, authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
+  // We're not using wallets from useWallets() yet, but keeping the hook for future use
+  const { } = useWallets();
   const { fundWallet } = useFundWallet();
   const [balance, setBalance] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
+  // publicKey is set but not displayed in UI per user preference for clean interface
+  const [, setPublicKey] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [createdWallets, setCreatedWallets] = useState<CreatedWallet[]>([]);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
@@ -50,7 +52,12 @@ export default function Home() {
         const response = await fetch(`/api/wallets?ownerId=${user.id}`);
         const data = await response.json();
         if (data.success && data.wallets) {
-          const formattedWallets = data.wallets.map((wallet: any) => ({
+          const formattedWallets = data.wallets.map((wallet: {
+            id: string;
+            address: string;
+            chainType: string;
+            walletIndex?: number;
+          }) => ({
             id: wallet.id,
             address: wallet.address,
             chainType: wallet.chainType,
