@@ -5,12 +5,14 @@
  * Operations include:
  * 1. Identifying eligible wallets
  * 2. Logging wallet details
- * 3. Performing actions on these wallets (e.g., transfers, swaps)
+ * 3. Querying AI for desired portfolio balances
+ * 4. Performing actions on these wallets based on portfolio recommendations
  */
 
 const { ethers } = require('ethers');
 const axios = require('axios');
 const dotenv = require('dotenv');
+const portfolioSimulator = require('./portfolioSimulator');
 
 // Load environment variables
 dotenv.config();
@@ -160,6 +162,71 @@ async function swapUSDCForToken(walletAddress, amount, targetToken) {
 }
 
 /**
+ * Get portfolio recommendation for a wallet
+ * @param {Object} wallet - Wallet object
+ * @returns {Promise<Object>} - Portfolio recommendation
+ */
+async function getPortfolioRecommendation(wallet) {
+  try {
+    // Query AI (simulator) for desired portfolio balances
+    const recommendation = await portfolioSimulator.generatePortfolioRecommendation(wallet);
+    
+    console.log(`Portfolio recommendation for wallet ${wallet.address}:`);
+    console.log(`  Current Balance: ${wallet.usdcBalanceFormatted} USDC`);
+    console.log('  Recommended Portfolio:');
+    
+    for (const [asset, percentage] of Object.entries(recommendation.recommendedPortfolio)) {
+      console.log(`    ${asset}: ${percentage * 100}%`);
+    }
+    
+    console.log('  Recommended Amounts:');
+    
+    for (const [asset, amount] of Object.entries(recommendation.recommendedAmounts)) {
+      console.log(`    ${asset}: ${amount.toFixed(6)}`);
+    }
+    
+    console.log(`  Reasoning: ${recommendation.reasoning}`);
+    
+    return recommendation;
+  } catch (error) {
+    console.error(`Error getting portfolio recommendation for wallet ${wallet.address}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Execute portfolio rebalancing based on recommendation
+ * @param {Object} wallet - Wallet object
+ * @param {Object} recommendation - Portfolio recommendation
+ */
+async function executePortfolioRebalancing(wallet, recommendation) {
+  try {
+    console.log(`[SIMULATION] Executing portfolio rebalancing for wallet ${wallet.address}...`);
+    
+    // In a real implementation, you would:
+    // 1. Check current portfolio allocation
+    // 2. Calculate required trades to achieve target allocation
+    // 3. Execute trades via DEX or other mechanism
+    
+    // Simulate rebalancing for each asset in the recommendation
+    for (const [asset, targetAmount] of Object.entries(recommendation.recommendedAmounts)) {
+      console.log(`[SIMULATION] Rebalancing ${asset} to ${targetAmount.toFixed(6)} (${recommendation.recommendedPortfolio[asset] * 100}% of portfolio)`);
+      
+      // Simulate transaction delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log(`[SIMULATION] Successfully rebalanced ${asset}`);
+    }
+    
+    console.log(`[SIMULATION] Portfolio rebalancing completed for wallet ${wallet.address}`);
+    return true;
+  } catch (error) {
+    console.error(`Error executing portfolio rebalancing for wallet ${wallet.address}:`, error.message);
+    return false;
+  }
+}
+
+/**
  * Main function to process wallets with sufficient balance
  */
 async function processWalletsWithBalance() {
@@ -179,15 +246,16 @@ async function processWalletsWithBalance() {
     // Process each wallet
     for (const wallet of wallets) {
       console.log(`Processing wallet ${wallet.address}...`);
-      
-      // Example: Log wallet details
       console.log(`  USDC Balance: ${wallet.usdcBalanceFormatted} USDC`);
       
-      // Example: Simulate a swap operation
-      // Note: This is just a simulation, no actual transaction occurs
-      if (Number(wallet.usdcBalance) > 100000) { // More than 0.1 USDC
-        console.log(`  Wallet has sufficient balance for swap operation`);
-        await swapUSDCForToken(wallet.address, '0.05', '0xETHTokenAddress');
+      // Get portfolio recommendation from AI
+      const recommendation = await getPortfolioRecommendation(wallet);
+      
+      if (recommendation) {
+        // Execute portfolio rebalancing based on recommendation
+        await executePortfolioRebalancing(wallet, recommendation);
+      } else {
+        console.log(`  Skipping portfolio rebalancing due to missing recommendation`);
       }
       
       console.log(`  Wallet processing complete`);
@@ -208,6 +276,8 @@ module.exports = {
   logWalletsWithBalance,
   transferUSDC,
   swapUSDCForToken,
+  getPortfolioRecommendation,
+  executePortfolioRebalancing,
   processWalletsWithBalance
 };
 
