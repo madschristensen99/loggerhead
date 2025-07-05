@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const { PrivyClient } = require('@privy-io/server-auth');
 const dotenv = require('dotenv');
 const axios = require('axios');
+const { ethers } = require('ethers');
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,16 @@ dotenv.config();
 console.log('Environment loaded:');
 console.log('PRIVY_API_KEY:', process.env.PRIVY_API_KEY ? '✓ Set' : '✗ Not set');
 console.log('PRIVY_APP_SECRET:', process.env.PRIVY_APP_SECRET ? '✓ Set' : '✗ Not set');
+console.log('BASE_RPC:', process.env.BASE_RPC ? '✓ Set' : '✗ Not set');
+
+// USDC token contract address on Base
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+// USDC has 6 decimals
+const USDC_DECIMALS = 6;
+
+// Minimum balance threshold (2 cents = 0.02 USDC = 20000 in smallest units)
+const MIN_BALANCE_THRESHOLD = 20000; // 0.02 USDC
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -42,6 +53,28 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Function to check USDC balance on Base for a wallet address
+async function checkUSDCBalance(walletAddress) {
+  try {
+    // Create a provider using the Base RPC URL
+    const provider = new ethers.JsonRpcProvider(process.env.BASE_RPC);
+    
+    // Create USDC contract instance (minimal ABI for balanceOf function)
+    const usdcAbi = [
+      'function balanceOf(address owner) view returns (uint256)'
+    ];
+    const usdcContract = new ethers.Contract(USDC_ADDRESS, usdcAbi, provider);
+    
+    // Get USDC balance
+    const balance = await usdcContract.balanceOf(walletAddress);
+    
+    return balance;
+  } catch (error) {
+    console.error(`Error checking USDC balance for ${walletAddress}:`, error.message);
+    return ethers.parseUnits('0', USDC_DECIMALS);
+  }
+}
+
 // Get all wallets endpoint
 app.get('/api/wallets', apiKeyMiddleware, async (req, res) => {
   try {
@@ -66,12 +99,34 @@ app.get('/api/wallets', apiKeyMiddleware, async (req, res) => {
       }
       
       console.log(`Total wallets found: ${allWallets.length}`);
-      console.log('Wallet details:', JSON.stringify(allWallets, null, 2));
+      
+      // Check USDC balances on Base for each wallet
+      console.log('Checking USDC balances on Base...');
+      const walletsWithBalances = [];
+      
+      for (const wallet of allWallets) {
+        const balance = await checkUSDCBalance(wallet.address);
+        const balanceNumber = Number(balance);
+        
+        // Add balance to wallet object
+        wallet.usdcBalance = balance.toString();
+        wallet.usdcBalanceFormatted = ethers.formatUnits(balance, USDC_DECIMALS);
+        
+        // Check if balance is greater than threshold
+        if (balanceNumber > MIN_BALANCE_THRESHOLD) {
+          console.log(`Wallet ${wallet.address} has ${wallet.usdcBalanceFormatted} USDC (> 0.02 USDC)`);
+          walletsWithBalances.push(wallet);
+        }
+      }
+      
+      console.log(`Found ${walletsWithBalances.length} wallets with USDC balance > 0.02`);
       
       return res.status(200).json({
         success: true,
         wallets: allWallets,
-        count: allWallets.length
+        walletsWithUSDCBalance: walletsWithBalances,
+        count: allWallets.length,
+        countWithBalance: walletsWithBalances.length
       });
     } catch (sdkError) {
       console.error('Error using SDK method:', sdkError.message);
@@ -88,13 +143,36 @@ app.get('/api/wallets', apiKeyMiddleware, async (req, res) => {
         }
       });
       
-      console.log('API response:', JSON.stringify(response.data, null, 2));
+      const wallets = response.data.wallets || [];
+      
+      // Check USDC balances on Base for each wallet
+      console.log('Checking USDC balances on Base...');
+      const walletsWithBalances = [];
+      
+      for (const wallet of wallets) {
+        const balance = await checkUSDCBalance(wallet.address);
+        const balanceNumber = Number(balance);
+        
+        // Add balance to wallet object
+        wallet.usdcBalance = balance.toString();
+        wallet.usdcBalanceFormatted = ethers.formatUnits(balance, USDC_DECIMALS);
+        
+        // Check if balance is greater than threshold
+        if (balanceNumber > MIN_BALANCE_THRESHOLD) {
+          console.log(`Wallet ${wallet.address} has ${wallet.usdcBalanceFormatted} USDC (> 0.02 USDC)`);
+          walletsWithBalances.push(wallet);
+        }
+      }
+      
+      console.log(`Found ${walletsWithBalances.length} wallets with USDC balance > 0.02`);
       
       return res.status(200).json({
         success: true,
-        wallets: response.data.wallets || [],
-        nextCursor: response.data.next_cursor,
-        count: (response.data.wallets || []).length
+        wallets: wallets,
+        walletsWithUSDCBalance: walletsWithBalances,
+        count: wallets.length,
+        countWithBalance: walletsWithBalances.length,
+        nextCursor: response.data.next_cursor
       });
     }
   } catch (error) {
@@ -102,6 +180,58 @@ app.get('/api/wallets', apiKeyMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get all wallets',
+      details: error.message || 'Unknown error'
+    });
+  }
+});
+
+// Get wallets with USDC balance > 0.02 endpoint
+app.get('/api/wallets/with-balance', apiKeyMiddleware, async (req, res) => {
+  try {
+    console.log('Getting wallets with USDC balance > 0.02...');
+    
+    // Get all wallets
+    const users = await privy.getUsers();
+    
+    // Extract wallets from all users
+    const allWallets = [];
+    for (const user of users) {
+      if (user.linkedAccounts) {
+        const userWallets = user.linkedAccounts.filter(account => account.type === 'wallet');
+        if (userWallets.length > 0) {
+          allWallets.push(...userWallets);
+        }
+      }
+    }
+    
+    // Check USDC balances on Base for each wallet
+    const walletsWithBalances = [];
+    
+    for (const wallet of allWallets) {
+      const balance = await checkUSDCBalance(wallet.address);
+      const balanceNumber = Number(balance);
+      
+      // Check if balance is greater than threshold
+      if (balanceNumber > MIN_BALANCE_THRESHOLD) {
+        wallet.usdcBalance = balance.toString();
+        wallet.usdcBalanceFormatted = ethers.formatUnits(balance, USDC_DECIMALS);
+        console.log(`Wallet ${wallet.address} has ${wallet.usdcBalanceFormatted} USDC (> 0.02 USDC)`);
+        walletsWithBalances.push(wallet);
+      }
+    }
+    
+    console.log(`Found ${walletsWithBalances.length} wallets with USDC balance > 0.02`);
+    
+    return res.status(200).json({
+      success: true,
+      wallets: walletsWithBalances,
+      count: walletsWithBalances.length
+    });
+  } catch (error) {
+    console.error('Error getting wallets with balance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get wallets with balance',
       details: error.message || 'Unknown error'
     });
   }
