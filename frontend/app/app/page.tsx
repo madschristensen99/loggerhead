@@ -6,6 +6,8 @@ import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import { mainnet } from 'viem/chains';
 import Link from 'next/link';
+import Navbar from '@/app/components/Navbar';
+import { ChartLineDefault } from '@/app/components/Chart';
 
 export default function App() {
   const { ready, authenticated, login, logout, user } = usePrivy();
@@ -93,20 +95,90 @@ export default function App() {
   }
 
   return (
-    <div className="w-screen min-h-screen h-full bg-gray-50">
-      <nav className="fixed top-0 left-0 right-0 bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto p-4 flex justify-between items-center">
-          <Link href="/" className="font-bold text-xl text-blue-600 hover:text-blue-700">LoggerHead</Link>
-          <button 
-            className="font-bold text-xl px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" 
-            onClick={authenticated ? logout : login}
-          >
-            {authenticated ? 'Disconnect' : 'Connect Wallet'}
-          </button>
-        </div>
-      </nav>
+    <div className="w-screen min-h-screen h-full bg-white">
+      <Navbar />
       
-      <main className="pt-20">
+      <main className="pt-20 max-w-7xl mx-auto">
+
+        <div className="flex gap-4">
+          <div className="min-w-1/3 grow max-w-[calc(50%-1rem)]">
+            <ChartLineDefault />
+          </div>
+          <div className="min-w-1/3 grow max-w-[calc(50%-1rem)]"> 
+        <div className='flex flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4'>
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col gap-2">
+                <h2 className="text-2xl font-semibold text-center">Your Balance (total)</h2>
+                <div className="text-6xl font-light text-black">
+                  {balance ? (
+                    <>
+                      {balance === 'Error' ? 'Error fetching balance' : (
+                        <>
+                          {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                          <span className="text-black/50">$ USDf</span>
+                        </>
+                        )}
+                      </>
+                    ) : (
+                      'Loading...'
+                    )}
+                  </div>
+                </div>
+
+                {/*<div className="mt-4">
+                  <h2 className="font-semibold mb-4">Pool Balance (Yield)</h2>
+                  <div className="text-xl font-bold text-blue-600">
+                    {poolBalance ? (
+                      <>
+                        {poolBalance === 'Error' ? 'Error fetching pool balance' : (
+                          <>
+                            {parseFloat(poolBalance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                            <span className="text-blue-400"> USDf</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      'Loading...'
+                    )}
+                  </div>
+                </div>*/}
+              </div>
+
+              <div className="flex gap-2 justify-center">
+
+              <button
+                    onClick={() => {
+                      setIsFundingWallet(true);
+                      fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
+                        chain: mainnet,
+                        amount: '0.01' // Default amount in ETH
+                      })
+                        .then(() => {
+                          setIsFundingWallet(false);
+                          console.log('Funding complete');
+                        })
+                        .catch((error: Error) => {
+                          setIsFundingWallet(false);
+                          console.error('Funding error:', error);
+                        });
+                    }}
+                    disabled={isFundingWallet}
+                    className="bg-black text-white px-6 py-3 rounded-md font-semibold"
+                  >
+                    {isFundingWallet ? 'Funding Wallet...' : 'Fund Wallet'}
+                  </button>
+
+                <Link
+                  href="/deposit"
+                  className="inline-block px-6 py-3 bg-pink-200 text-black rounded-md font-semibold text-lg transition-colors"
+                >
+                  Flow Yield
+                </Link>
+                </div>
+                </div>
+        </div>
+        </div>
+
         {!authenticated && (
           <div className="flex items-center justify-center h-[calc(100vh-5rem)]">
             <div className="max-w-2xl w-full px-4">
@@ -127,42 +199,7 @@ export default function App() {
         {authenticated && (
           <div className="max-w-7xl mx-auto px-4 py-8">
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Your Balance (total)</h2>
-                <p className="text-sm text-gray-500 mb-2">User ID: {user?.id}</p>
-                <div className="text-4xl font-bold text-blue-600">
-                  {balance ? (
-                    <>
-                      {balance === 'Error' ? 'Error fetching balance' : (
-                        <>
-                          {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                          <span className="text-blue-400"> USDf</span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    'Loading...'
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <h2 className="font-semibold mb-4">Pool Balance (Yield)</h2>
-                  <div className="text-xl font-bold text-blue-600">
-                    {poolBalance ? (
-                      <>
-                        {poolBalance === 'Error' ? 'Error fetching pool balance' : (
-                          <>
-                            {parseFloat(poolBalance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                            <span className="text-blue-400"> USDf</span>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      'Loading...'
-                    )}
-                  </div>
-                </div>
-              </div>
+             
 
               <div className="">
                 <div className="space-y-4">
@@ -183,37 +220,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              <div className="flex gap-2">
-                <Link
-                  href="/deposit"
-                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md font-semibold text-lg hover:bg-blue-700 transition-colors"
-                >
-                  Flow Yield
-                </Link>
-
-                  <button
-                    onClick={() => {
-                      setIsFundingWallet(true);
-                      fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
-                        chain: mainnet,
-                        amount: '0.01' // Default amount in ETH
-                      })
-                        .then(() => {
-                          setIsFundingWallet(false);
-                          console.log('Funding complete');
-                        })
-                        .catch((error: Error) => {
-                          setIsFundingWallet(false);
-                          console.error('Funding error:', error);
-                        });
-                    }}
-                    disabled={isFundingWallet}
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-green-400 text-bold"
-                  >
-                    {isFundingWallet ? 'Funding Wallet...' : 'Fund Wallet'}
-                  </button>
-                </div>
             </div>
           </div>
         )}
