@@ -41,6 +41,33 @@ export default function Home() {
     }
   };
 
+  // Fetch user wallets when component loads
+  useEffect(() => {
+    const fetchUserWallets = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch(`/api/wallets?ownerId=${user.id}`);
+        const data = await response.json();
+        if (data.success && data.wallets) {
+          const formattedWallets = data.wallets.map((wallet: any) => ({
+            id: wallet.id,
+            address: wallet.address,
+            chainType: wallet.chainType,
+            walletIndex: wallet.walletIndex
+          }));
+          setCreatedWallets(formattedWallets);
+        }
+      } catch (error) {
+        console.error('Error fetching wallets:', error);
+      }
+    };
+
+    if (authenticated && user?.id) {
+      fetchUserWallets();
+    }
+  }, [authenticated, user]);
+
   useEffect(() => {
     const fetchBalance = async () => {
       const privateKey = user?.customMetadata?.privateKey;
