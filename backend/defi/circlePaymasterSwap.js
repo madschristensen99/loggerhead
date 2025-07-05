@@ -12,11 +12,14 @@ const RPC_URL = process.env.BASE_RPC || "https://base-mainnet.g.alchemy.com/v2/d
 
 // Contract addresses on Base
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // USDC on Base
-const WETH_ADDRESS = "0x4200000000000000000000000000000000000006"; // WETH on Base
+const EURC_ADDRESS = "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42"; // EURC (Euro Coin) on Base
 const AERODROME_ROUTER = "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43";
 
-// We'll use USDC to WETH which has excellent liquidity on Aerodrome
-// This will demonstrate the Circle Paymaster functionality effectively
+// AAVE V3 addresses on Base
+const AAVE_POOL_ADDRESS = "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5"; // AAVE V3 Pool on Base
+const AEURC_ADDRESS = "0x33B4e8dB2b10EeF1bD3a8d8e89C6C2F20Ec9f75b"; // aEURC token on Base (assuming EURC is supported)
+
+// We'll swap USDC to EURC (Euros) and then supply to AAVE for lending
 
 // Chain configuration
 const chain = base;
@@ -85,26 +88,33 @@ const routerAbi = [
   }
 ];
 
-// SlipStream pool ABI (Uniswap V3-like concentrated liquidity)
-const slipstreamPoolAbi = [
+// AAVE V3 Pool ABI (minimal for supplying)
+const aavePoolAbi = [
   {
-    inputs: [],
-    name: "token0",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
+    inputs: [
+      { name: "asset", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "onBehalfOf", type: "address" },
+      { name: "referralCode", type: "uint16" }
+    ],
+    name: "supply",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
-    inputs: [],
-    name: "token1",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "fee",
-    outputs: [{ name: "", type: "uint24" }],
+    inputs: [
+      { name: "user", type: "address" }
+    ],
+    name: "getUserAccountData",
+    outputs: [
+      { name: "totalCollateralBase", type: "uint256" },
+      { name: "totalDebtBase", type: "uint256" },
+      { name: "availableBorrowsBase", type: "uint256" },
+      { name: "currentLiquidationThreshold", type: "uint256" },
+      { name: "ltv", type: "uint256" },
+      { name: "healthFactor", type: "uint256" }
+    ],
     stateMutability: "view",
     type: "function",
   }
@@ -190,9 +200,9 @@ async function main() {
     abi: erc20Abi,
   });
 
-  const wethContract = getContract({
+  const eurcContract = getContract({
     client,
-    address: WETH_ADDRESS,
+    address: EURC_ADDRESS,
     abi: erc20Abi,
   });
 
@@ -202,7 +212,19 @@ async function main() {
     abi: routerAbi,
   });
 
-  console.log("\nUsing Aerodrome Router for USDC to WETH swap");
+  const aavePoolContract = getContract({
+    client,
+    address: AAVE_POOL_ADDRESS,
+    abi: aavePoolAbi,
+  });
+
+  const aeurcContract = getContract({
+    client,
+    address: AEURC_ADDRESS,
+    abi: erc20Abi,
+  });
+
+  console.log("\nUsing Aerodrome Router for USDC to EURC swap + AAVE lending");
 
   // Check USDC balance
   const usdcBalance = await usdcContract.read.balanceOf([account.address]);
@@ -216,37 +238,81 @@ async function main() {
     process.exit(1);
   }
 
-  // Set swap amount (10 USDC)
-  const swapAmount = parseUnits("10", usdcDecimals);
+  // Set swap amount (1 USDC)
+  const swapAmount = parseUnits("1", usdcDecimals);
 
   if (usdcBalance < swapAmount) {
     throw new Error(`Insufficient USDC balance. Need ${formatUnits(swapAmount, usdcDecimals)} USDC`);
   }
 
-  console.log(`\nSwapping ${formatUnits(swapAmount, usdcDecimals)} USDC to WETH...`);
+  console.log(`\nSwapping ${formatUnits(swapAmount, usdcDecimals)} USDC to EURC...`);
 
-  // USDC/WETH has excellent liquidity on Aerodrome, so this should work
-  // Try volatile route (stablecoins to volatile assets typically use volatile pools)
-  // Note: factory address of 0x0 means use default factory
-  const route = [{ 
-    from: USDC_ADDRESS, 
-    to: WETH_ADDRESS, 
-    stable: false,
-    factory: "0x0000000000000000000000000000000000000000" // Use default factory
-  }];
+  // Try to find a direct USDC/EURC route, fall back to multi-hop if needed
+  let route;
+  let expectedEurcOut;
 
-  // Get expected output amount
-  const amountsOut = await routerContract.read.getAmountsOut([swapAmount, route]);
-  const expectedWethOut = amountsOut[1];
-  const wethDecimals = 18; // WETH has 18 decimals
+  // Try direct stable route first (both are stablecoins)
+  try {
+    route = [{ 
+      from: USDC_ADDRESS, 
+      to: EURC_ADDRESS, 
+      stable: true,
+      factory: "0x0000000000000000000000000000000000000000" // Use default factory
+    }];
+    
+    const amountsOut = await routerContract.read.getAmountsOut([swapAmount, route]);
+    expectedEurcOut = amountsOut[1];
+    console.log("Using direct stable route USDC → EURC");
+  } catch (error) {
+    console.log("Direct stable route failed, trying volatile route");
+    
+    try {
+      route = [{ 
+        from: USDC_ADDRESS, 
+        to: EURC_ADDRESS, 
+        stable: false,
+        factory: "0x0000000000000000000000000000000000000000"
+      }];
+      
+      const amountsOut = await routerContract.read.getAmountsOut([swapAmount, route]);
+      expectedEurcOut = amountsOut[1];
+      console.log("Using direct volatile route USDC → EURC");
+    } catch (error2) {
+      console.log("Direct routes failed, trying multi-hop through WETH");
+      
+      // Multi-hop route: USDC → WETH → EURC
+      route = [
+        { 
+          from: USDC_ADDRESS, 
+          to: "0x4200000000000000000000000000000000000006", // WETH
+          stable: false,
+          factory: "0x0000000000000000000000000000000000000000"
+        },
+        { 
+          from: "0x4200000000000000000000000000000000000006", // WETH
+          to: EURC_ADDRESS, 
+          stable: false,
+          factory: "0x0000000000000000000000000000000000000000"
+        }
+      ];
+      
+      const amountsOut = await routerContract.read.getAmountsOut([swapAmount, route]);
+      expectedEurcOut = amountsOut[2]; // Third element for 2-hop route
+      console.log("Using multi-hop route USDC → WETH → EURC");
+    }
+  }
 
-  console.log(`Expected WETH output: ${formatUnits(expectedWethOut, wethDecimals)}`);
+  if (!expectedEurcOut) {
+    throw new Error("No valid route found for USDC to EURC swap");
+  }
+
+  console.log(`Expected EURC output: ${formatUnits(expectedEurcOut, eurcDecimals)}`);
 
   // Set minimum amount out (with 0.5% slippage tolerance)
   const slippageTolerance = 0.005; // 0.5%
-  const minAmountOut = expectedWethOut * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / 1000n;
+  const minAmountOut = expectedEurcOut * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / 1000n;
 
-  console.log(`Minimum WETH output (with slippage): ${formatUnits(minAmountOut, wethDecimals)}`);
+  console.log(`Minimum EURC output (with slippage): ${formatUnits(minAmountOut, eurcDecimals)}`);
 
   // Setup Circle Paymaster
   const paymasterAddress = PAYMASTER_V08_ADDRESS;
@@ -318,9 +384,9 @@ async function main() {
     contractAddress: account.authorization.address,
   });
 
-  console.log("\nExecuting swap with Circle Paymaster (paying fees in USDC)...");
+  console.log("\nExecuting USDC → EURC swap + AAVE deposit with Circle Paymaster...");
 
-  // Execute the swap through the bundler
+  // Execute the swap + AAVE deposit through the bundler
   const hash = await bundlerClient.sendUserOperation({
     account,
     calls: [
@@ -331,7 +397,7 @@ async function main() {
         functionName: "approve",
         args: [AERODROME_ROUTER, swapAmount],
       },
-      // Then execute the swap
+      // Execute the swap USDC → EURC
       {
         to: AERODROME_ROUTER,
         abi: routerAbi,
@@ -342,6 +408,25 @@ async function main() {
           route,
           account.address,
           deadline,
+        ],
+      },
+      // Approve AAVE Pool to spend EURC (use a larger amount to account for actual swap output)
+      {
+        to: EURC_ADDRESS,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [AAVE_POOL_ADDRESS, expectedEurcOut * 2n], // Approve 2x expected to be safe
+      },
+      // Supply all received EURC to AAVE (we'll use max uint256 to supply all)
+      {
+        to: AAVE_POOL_ADDRESS,
+        abi: aavePoolAbi,
+        functionName: "supply",
+        args: [
+          EURC_ADDRESS, // asset
+          expectedEurcOut, // amount
+          account.address, // onBehalfOf
+          0 // referralCode
         ],
       },
     ],
@@ -355,13 +440,24 @@ async function main() {
 
   // Check final balances
   const finalUsdcBalance = await usdcContract.read.balanceOf([account.address]);
-  const finalWethBalance = await wethContract.read.balanceOf([account.address]);
+  const finalEurcBalance = await eurcContract.read.balanceOf([account.address]);
+  const finalAeurcBalance = await aeurcContract.read.balanceOf([account.address]);
+
+  // Get AAVE account data
+  const accountData = await aavePoolContract.read.getUserAccountData([account.address]);
 
   console.log("\nFinal Balances:");
   console.log(`USDC: ${formatUnits(finalUsdcBalance, usdcDecimals)}`);
   console.log(`WETH: ${formatUnits(finalWethBalance, wethDecimals)}`);
+  console.log(`aWETH (AAVE): ${formatUnits(finalAwethBalance, wethDecimals)}`);
 
-  console.log("\nSwap completed successfully! Gas fees paid with USDC via Circle Paymaster.");
+  console.log("\nAAVE Account Data:");
+  console.log(`Total Collateral: ${formatUnits(accountData[0], 8)} (USD)`); // AAVE uses 8 decimals for USD
+  console.log(`Total Debt: ${formatUnits(accountData[1], 8)} (USD)`);
+  console.log(`Available Borrows: ${formatUnits(accountData[2], 8)} (USD)`);
+  console.log(`Health Factor: ${formatUnits(accountData[5], 18)}`);
+
+  console.log("\nSwap + AAVE deposit completed successfully! Gas fees paid with USDC via Circle Paymaster.");
   console.log(`View transaction: https://basescan.org/tx/${receipt.receipt.transactionHash}`);
 
   // Exit process
