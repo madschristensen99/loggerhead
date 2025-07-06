@@ -10,12 +10,12 @@ import Navbar from '@/app/components/Navbar';
 import { ChartLineDefault } from '@/app/components/Chart';
 
 export default function App() {
-  const { ready, authenticated, login, logout, user } = usePrivy();
+  const { ready, authenticated, login, user } = usePrivy();
   const { fundWallet } = useFundWallet();
   const [balance, setBalance] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isFundingWallet, setIsFundingWallet] = useState(false);
-  const [poolBalance, setPoolBalance] = useState<string | null>(null);
+  //const [poolBalance, setPoolBalance] = useState<string | null>(null);
 
   // Fetch balances when component loads
   useEffect(() => {
@@ -72,13 +72,13 @@ export default function App() {
           console.log('Pool Balance in Wei:', poolBalanceWei.toString());
           const poolBalanceFormatted = ethers.formatUnits(poolBalanceWei, decimals);
           console.log('Pool Balance in USDf:', poolBalanceFormatted);
-          setPoolBalance(poolBalanceFormatted);
+          //setPoolBalance(poolBalanceFormatted);
 
         } catch (error) {
           console.error('Error fetching balances:', error);
           setBalance('Error');
           setWalletAddress(null);
-          setPoolBalance('Error');
+          //setPoolBalance('Error');
         }
       }
     };
