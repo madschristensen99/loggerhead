@@ -1,6 +1,6 @@
 # Backend
 
-This is basically divided in two parts, the defi folder which integrates privy and stargate and everything else which runs an express app that will query perplexity ai to know whether the exchange rate for Euro is better than the USD and vice versa.
+This is basically divided in two parts, the defi folder which integrates privy and stargate and everything else which runs a multi-agent system using claude ai as the orchestrator that will query perplexity ai && chatgpt to know whether the exchange rate for Euro is better than the USD and vice versa.
 
 ## Express app
 
