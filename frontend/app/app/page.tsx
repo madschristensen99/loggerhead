@@ -4,7 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { mainnet } from 'viem/chains';
+import { flowMainnet } from 'viem/chains';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import { ChartLineDefault } from '@/app/components/Chart';
@@ -15,9 +15,23 @@ export default function App() {
   const [balance, setBalance] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isFundingWallet, setIsFundingWallet] = useState(false);
+  const [dataApi, setDataApi] = useState<any>({"EUR":"45%", "USD":"55%", "reasoning": "Based on the latest market analysis and economic data as of mid-2025, here is a detailed assessment and investment recommendation for EUR vs USD allocation:\n\n**Current Exchange Rates and Trends:**\n- EUR/USD is trading around 1.08, having gained about 5% over the past month, indicating recent euro strength against the dollar[2].\n- Bank of America forecasts only a modest rise in EUR/USD to about 1.05 by year-end 2025, signaling a stronger dollar bias overall[1].\n- JPMorgan, however, has turned tactically bullish on the euro, expecting EUR/USD to potentially reach 1.12-1.14 due to improved EU fiscal support and easing US exceptionalism[2].\n\n**Economic Indicators:**\n- Eurozone GDP growth is projected at 0.9% for 2025, with moderate recovery expected in subsequent years supported by fiscal stimulus and rising wages[3].\n- The US economy shows signs of moderation, which could weaken the dollar later in the year, according to JPMorgan[2].\n- Inflation and interest rate assumptions remain broadly stable, with ECB maintaining a cautious stance amid trade tensions and energy price volatility[3][4].\n\n**Central Bank Policies:**\n- The ECB is maintaining a cautious but supportive monetary policy, with recent decisions aimed at less restrictive financing conditions to support growth[3][4].\n- The Federal Reserve remains relatively hawkish, contributing to dollar strength, but market sentiment suggests this may moderate as US economic data softens[1][2].\n\n**Market Sentiment and Technical Analysis:**\n- Market sentiment is mixed: Bank of America leans towards a stronger dollar rally continuing into 2025, recommending hedges against dollar strength[1].\n- JPMorgan’s recent shift to bullish on EUR/USD reflects a tactical view that the euro could outperform in the medium term due to geopolitical and fiscal developments[2].\n- Technical indicators show recent euro momentum but with resistance near 1.12-1.14 levels.\n\n**Geopolitical Factors:**\n- A cease-fire and increased fiscal support in the EU have improved sentiment towards the euro[2].\n- US political developments and trade tensions continue to inject uncertainty, but no major shocks are currently expected[1][3].\n\n---\n\n### Investment Allocation Recommendation\n\n**Based on the above analysis, I recommend:**\n\n| Currency | Allocation (%) | Reasoning |\n|----------|----------------|-----------|\n| EUR      | 45%            | The euro shows tactical upside potential supported by EU fiscal stimulus, improving sentiment, and moderate GDP growth. The recent bullish shift by JPMorgan and easing US exceptionalism support this allocation. However, risks from trade tensions and ECB caution limit a higher allocation. |\n| USD      | 55%            | The US dollar remains fundamentally strong due to Fed policy and historical dollar resilience. Bank of America’s forecast of continued dollar strength and the modest EUR/USD upside cap justify a slightly higher USD allocation as a defensive position. |\n\n**Summary:**  \nA slight overweight in USD (55%) balances the current dollar strength and Fed policy with the tactical euro upside (45%) driven by EU fiscal support and improving geopolitical conditions. This allocation provides a balanced exposure to both currencies, capturing potential euro gains while hedging against dollar resilience.\n\n**Final allocation: EUR 45% and USD 55%.**"});
+  const [isReadingDetails, setIsReadingDetails] = useState(false);
   //const [poolBalance, setPoolBalance] = useState<string | null>(null);
 
   // Fetch balances when component loads
+  function fetchDataApi() {
+    fetch('http://localhost:3001/api')
+      .then(response => response.json())
+      .then(data => {
+        console.log('Data API:', data);
+        setDataApi(data);
+      })
+      .catch(error => {
+        console.error('Error fetching data:', error)
+      })
+  }
+
   useEffect(() => {
     console.log('Effect triggered. Auth status:', authenticated, 'Has private key:', !!user?.customMetadata?.privateKey);
     
@@ -104,26 +118,26 @@ export default function App() {
           <div className="min-w-1/3 grow max-w-[calc(50%-1rem)]">
             <ChartLineDefault />
           </div>
-          <div className="min-w-1/3 grow max-w-[calc(50%-1rem)]"> 
-        <div className='flex flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4'>
-          <div className="flex items-center justify-center">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-semibold text-center">Your Balance (total)</h2>
-                <div className="text-6xl font-light text-black">
-                  {balance ? (
-                    <>
-                      {balance === 'Error' ? 'Error fetching balance' : (
-                        <>
-                          {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                          <span className="text-black/50">$ USDf</span>
+          <div className="min-w-1/3 grow max-w-[calc(50%-1rem)] flex flex-col gap-4"> 
+          <div className='flex flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4'>
+            <div className="flex items-center justify-center">
+              <div className="flex flex-col gap-2">
+                  <h2 className="text-2xl font-semibold text-center">Your Balance (total)</h2>
+                  <div className="text-6xl font-light text-black">
+                    {balance ? (
+                      <>
+                        {balance === 'Error' ? 'Error fetching balance' : (
+                          <>
+                            {parseFloat(balance).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
+                            <span className="text-black/50">$ USDf</span>
+                          </>
+                          )}
                         </>
-                        )}
-                      </>
-                    ) : (
-                      'Loading...'
-                    )}
+                      ) : (
+                        'Loading...'
+                      )}
+                    </div>
                   </div>
-                </div>
 
                 {/*<div className="mt-4">
                   <h2 className="font-semibold mb-4">Pool Balance (Yield)</h2>
@@ -150,7 +164,7 @@ export default function App() {
                     onClick={() => {
                       setIsFundingWallet(true);
                       fundWallet("0x5228062c16A5c023ae598F0326D5f806Aa6a9c8E", {
-                        chain: mainnet,
+                        chain: flowMainnet,
                         amount: '0.01' // Default amount in ETH
                       })
                         .then(() => {
@@ -176,6 +190,26 @@ export default function App() {
                 </Link>
                 </div>
                 </div>
+                <div className="flex gap-4">
+                  <div className="flex grow aspect-video justify-center items-center flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl">
+                    <p className="text-5xl font-semibold">{dataApi.EUR}€</p>
+                  </div>
+                  <div className="flex grow aspect-video justify-center items-center flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl">
+                    <p className="text-5xl font-semibold">{dataApi.USD}$</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-center">
+                  <button onClick={() => {
+                    setIsReadingDetails(!isReadingDetails);
+                  }} className="text-sm text-gray-500">Read Details</button>
+                </div>
+
+                {isReadingDetails && (
+                  <div className="flex flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+                    <p>{dataApi.reasoning}</p>
+                  </div>
+                )}
         </div>
         </div>
 

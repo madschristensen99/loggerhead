@@ -5,7 +5,7 @@ import { defineChain } from 'viem';
 import { mainnet } from 'viem/chains';
 
 const flowEVM = defineChain({
-  id: 646,
+  id: 747,
   name: 'Flow EVM',
   network: 'flow-evm',
   nativeCurrency: {
