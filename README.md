@@ -17,9 +17,9 @@ Loggerhead combines AI-powered market analysis with DeFi automation to:
 loggerhead/
 ├── backend/
 │   ├── defi/                 # DeFi integration services
-│   │   └── src/
-│   │       ├── services/     # Core services for trading and wallet management
-│   │       └── routes/       # API endpoints for DeFi operations
+│   │   └──usdcToEurAave.js  # brings funds from usdc to Euros on Aave
+│   │   └── eurAaveToUsdc.js # brings funds from Euros on Aave to Usdc 
+│   │   └── walletOperations.js # Handles Privy keys so we can run operations for users
 │   ├── mcp/                  # Model Context Protocol AI agent
 │   │   └── currency-advisor.js  # AI agent for EUR/USD analysis
 │   ├── routes/               # Main API routes
