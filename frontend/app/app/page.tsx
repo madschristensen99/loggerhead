@@ -9,28 +9,53 @@ import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import { ChartLineDefault } from '@/app/components/Chart';
 
+interface AIApiResponse {
+  EUR: string;
+  USD: string;
+  reasoning: string;
+  riskAssessment?: string;
+  timeHorizon?: {
+    shortTerm: string;
+    longTerm: string;
+  };
+}
+
 export default function App() {
   const { ready, authenticated, login, user } = usePrivy();
   const { fundWallet } = useFundWallet();
   const [balance, setBalance] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isFundingWallet, setIsFundingWallet] = useState(false);
-  const [dataApi, setDataApi] = useState<any>({"EUR":"45%", "USD":"55%", "reasoning": "Based on the latest market analysis and economic data as of mid-2025, here is a detailed assessment and investment recommendation for EUR vs USD allocation:\n\n**Current Exchange Rates and Trends:**\n- EUR/USD is trading around 1.08, having gained about 5% over the past month, indicating recent euro strength against the dollar[2].\n- Bank of America forecasts only a modest rise in EUR/USD to about 1.05 by year-end 2025, signaling a stronger dollar bias overall[1].\n- JPMorgan, however, has turned tactically bullish on the euro, expecting EUR/USD to potentially reach 1.12-1.14 due to improved EU fiscal support and easing US exceptionalism[2].\n\n**Economic Indicators:**\n- Eurozone GDP growth is projected at 0.9% for 2025, with moderate recovery expected in subsequent years supported by fiscal stimulus and rising wages[3].\n- The US economy shows signs of moderation, which could weaken the dollar later in the year, according to JPMorgan[2].\n- Inflation and interest rate assumptions remain broadly stable, with ECB maintaining a cautious stance amid trade tensions and energy price volatility[3][4].\n\n**Central Bank Policies:**\n- The ECB is maintaining a cautious but supportive monetary policy, with recent decisions aimed at less restrictive financing conditions to support growth[3][4].\n- The Federal Reserve remains relatively hawkish, contributing to dollar strength, but market sentiment suggests this may moderate as US economic data softens[1][2].\n\n**Market Sentiment and Technical Analysis:**\n- Market sentiment is mixed: Bank of America leans towards a stronger dollar rally continuing into 2025, recommending hedges against dollar strength[1].\n- JPMorgan’s recent shift to bullish on EUR/USD reflects a tactical view that the euro could outperform in the medium term due to geopolitical and fiscal developments[2].\n- Technical indicators show recent euro momentum but with resistance near 1.12-1.14 levels.\n\n**Geopolitical Factors:**\n- A cease-fire and increased fiscal support in the EU have improved sentiment towards the euro[2].\n- US political developments and trade tensions continue to inject uncertainty, but no major shocks are currently expected[1][3].\n\n---\n\n### Investment Allocation Recommendation\n\n**Based on the above analysis, I recommend:**\n\n| Currency | Allocation (%) | Reasoning |\n|----------|----------------|-----------|\n| EUR      | 45%            | The euro shows tactical upside potential supported by EU fiscal stimulus, improving sentiment, and moderate GDP growth. The recent bullish shift by JPMorgan and easing US exceptionalism support this allocation. However, risks from trade tensions and ECB caution limit a higher allocation. |\n| USD      | 55%            | The US dollar remains fundamentally strong due to Fed policy and historical dollar resilience. Bank of America’s forecast of continued dollar strength and the modest EUR/USD upside cap justify a slightly higher USD allocation as a defensive position. |\n\n**Summary:**  \nA slight overweight in USD (55%) balances the current dollar strength and Fed policy with the tactical euro upside (45%) driven by EU fiscal support and improving geopolitical conditions. This allocation provides a balanced exposure to both currencies, capturing potential euro gains while hedging against dollar resilience.\n\n**Final allocation: EUR 45% and USD 55%.**"});
+  const [dataApi, setDataApi] = useState<AIApiResponse | null>(null);
+  const [isLoadingApi, setIsLoadingApi] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [isReadingDetails, setIsReadingDetails] = useState(false);
   //const [poolBalance, setPoolBalance] = useState<string | null>(null);
 
-  // Fetch balances when component loads
-  function fetchDataApi() {
-    fetch('http://localhost:3001/api')
-      .then(response => response.json())
-      .then(data => {
-        console.log('Data API:', data);
-        setDataApi(data);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error)
-      })
-  }
+  // Fetch data from AI Currency API
+  const fetchDataApi = async () => {
+    setIsLoadingApi(true);
+    setApiError(null);
+    try {
+      const response = await fetch('http://151.80.152.86:4000/ai-currency');
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data = await response.json();
+      console.log('AI Currency Data:', data);
+      setDataApi(data);
+    } catch (error) {
+      console.error('Error fetching AI currency data:', error);
+      setApiError('Failed to load currency data');
+    } finally {
+      setIsLoadingApi(false);
+    }
+  };
+
+  // Call fetchDataApi when component mounts
+  useEffect(() => {
+    fetchDataApi();
+  }, []);
 
   useEffect(() => {
     console.log('Effect triggered. Auth status:', authenticated, 'Has private key:', !!user?.customMetadata?.privateKey);
@@ -192,22 +217,53 @@ export default function App() {
                 </div>
                 <div className="flex gap-4">
                   <div className="flex grow aspect-video justify-center items-center flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl">
-                    <p className="text-5xl font-semibold">{dataApi.EUR}€</p>
+                    {isLoadingApi ? (
+                      <p className="text-2xl text-gray-400">Loading...</p>
+                    ) : apiError ? (
+                      <p className="text-xl text-red-500">{apiError}</p>
+                    ) : (
+                      <p className="text-5xl font-semibold">{dataApi?.EUR || '0%'}€</p>
+                    )}
                   </div>
                   <div className="flex grow aspect-video justify-center items-center flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl">
-                    <p className="text-5xl font-semibold">{dataApi.USD}$</p>
+                    {isLoadingApi ? (
+                      <p className="text-2xl text-gray-400">Loading...</p>
+                    ) : apiError ? (
+                      <p className="text-xl text-red-500">{apiError}</p>
+                    ) : (
+                      <p className="text-5xl font-semibold">{dataApi?.USD || '0%'}$</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex gap-2 justify-center">
-                  <button onClick={() => {
-                    setIsReadingDetails(!isReadingDetails);
-                  }} className="text-sm text-gray-500">Read Details</button>
+                  <button 
+                    onClick={() => {
+                      setIsReadingDetails(!isReadingDetails);
+                    }} 
+                    className="text-sm text-gray-500"
+                    disabled={isLoadingApi || !!apiError}
+                  >
+                    {isLoadingApi ? 'Loading...' : 'Read Details'}
+                  </button>
                 </div>
 
-                {isReadingDetails && (
+                {isReadingDetails && dataApi && (
                   <div className="flex flex-col gap-4 bg-zinc-50 border border-zinc-200 rounded-xl p-4">
                     <p>{dataApi.reasoning}</p>
+                    {dataApi.riskAssessment && (
+                      <>
+                        <h3 className="font-semibold mt-4">Risk Assessment</h3>
+                        <p>{dataApi.riskAssessment}</p>
+                      </>
+                    )}
+                    {dataApi.timeHorizon && (
+                      <>
+                        <h3 className="font-semibold mt-4">Time Horizon</h3>
+                        <p><strong>Short Term:</strong> {dataApi.timeHorizon.shortTerm}</p>
+                        <p><strong>Long Term:</strong> {dataApi.timeHorizon.longTerm}</p>
+                      </>
+                    )}
                   </div>
                 )}
         </div>
