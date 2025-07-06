@@ -4,7 +4,7 @@ This is basically divided in two parts, the defi folder which integrates privy a
 
 ## Express app
 
-The objective of this Express app is to tell whether you should buy Euro or US dollar according to recent news.
+The objective of this Express app is to tell whether the exchange rate for euro is better than usd and vice versa according to recent news.
 
 The app will spit out a json that looks like this:
 
@@ -30,5 +30,7 @@ Sample output looks like this:
 cd backend/
 npm install
 export PERPLEXITY_API_KEY=<your-key>
+export OPENAI_API_KEY=<your-key>
+export ANTHROPIC_API_KEY=<your-key>
 npm start
 ```
