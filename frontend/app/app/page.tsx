@@ -37,7 +37,11 @@ export default function App() {
     setIsLoadingApi(true);
     setApiError(null);
     try {
-      const response = await fetch('http://151.80.152.86:4000/ai-currency');
+      const response = await fetch('https://e2e4-83-144-23-156.ngrok-free.app/ai-currency', {
+        headers: new Headers({
+          "ngrok-skip-browser-warning": "69420",
+        }),
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }
