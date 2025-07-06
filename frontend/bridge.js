@@ -10,8 +10,16 @@ const ethereumClient = createPublicClient({
   transport: http()
 });
 
-async function fetchStargateRoutes(srcAddress) {
+async function fetchStargateRoutes(srcAddress, baseAmount = 10000) {
   try {
+    // Calculate amount to bridge based on the difference from 50% to 60% (USD target)
+    // If we start at 50-50 and want to get to 40-60, we need to move 10% of the total
+    const percentageToMove = 10; // Moving from 50% to 60% means moving 10%
+    const srcAmount = Math.floor(baseAmount * (percentageToMove / 100)).toString();
+    const dstAmountMin = Math.floor(baseAmount * 0.09).toString(); // 90% of srcAmount as minimum received
+
+    console.log(`🔄 Bridging ${percentageToMove}% of total position (${srcAmount} units) to achieve 60% USD allocation`);
+    
     // Fetching route for USDC transfer from Ethereum to Polygon
     const response = await axios.get('https://stargate.finance/api/v1/quotes', {
       params: {
@@ -21,8 +29,8 @@ async function fetchStargateRoutes(srcAddress) {
         dstAddress: srcAddress, // Using same address as destination
         srcChainKey: 'flow',
         dstChainKey: 'base',
-        srcAmount: '10000',
-        dstAmountMin: '9000'
+        srcAmount,
+        dstAmountMin
       }
     });
     

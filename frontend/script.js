@@ -4,6 +4,7 @@ import { executeStargateTransaction } from './bridge.js';
 import ora from 'ora';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,11 @@ const privy = new PrivyClient(
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function getStrategy() {
+  const response = await fetch('http://151.80.152.86:4000/ai-currency');
+  return await response.json();
 }
 
 async function main() {
@@ -38,12 +44,21 @@ async function main() {
           text: chalk.cyan('Getting information from API for the strategy...'),
           color: 'cyan'
         }).start();
-        await sleep(1500);
+        
+        const strategy = await getStrategy();
         strategySpinner.succeed(chalk.green('Strategy information retrieved'));
+        
+        // Log rebalancing information
+        console.log(chalk.bold('\n📊 Rebalancing Strategy:'));
+        console.log(chalk.gray('Initial allocation:  '), chalk.blue('EUR: 50%'), chalk.blue('USD: 50%'));
+        console.log(chalk.gray('Target allocation:   '), chalk.green(`EUR: ${strategy.EUR}`), chalk.green(`USD: ${strategy.USD}`));
+        console.log(chalk.gray('Reasoning:          '), chalk.italic(strategy.reasoning));
+        console.log(chalk.gray('Confidence Level:   '), chalk.yellow(`${strategy.confidenceLevel}/10`));
+        console.log();
 
         // Bridge token
         const bridgeSpinner = ora({
-          text: chalk.magenta('Bridging tokens...'),
+          text: chalk.magenta(`Bridging tokens to match ${strategy.USD} USD allocation...`),
           color: 'magenta'
         }).start();
         const account = privateKeyToAccount(privateKey);
@@ -52,7 +67,7 @@ async function main() {
 
         // Swap token (fake)
         const swapSpinner = ora({
-          text: chalk.blue('Swapping tokens...'),
+          text: chalk.blue(`Swapping tokens to achieve ${strategy.EUR}/${strategy.USD} balance...`),
           color: 'blue'
         }).start();
         await sleep(2000);
@@ -60,7 +75,7 @@ async function main() {
 
         // Yield token (fake)
         const yieldSpinner = ora({
-          text: chalk.yellow('Yielding tokens...'),
+          text: chalk.yellow(`Optimizing yield positions for ${strategy.EUR} EUR and ${strategy.USD} USD...`),
           color: 'yellow'
         }).start();
         await sleep(1500);
