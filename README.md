@@ -9,7 +9,7 @@ Loggerhead combines AI-powered market analysis with DeFi automation to:
 1. **Analyze Market Conditions**: Uses Perplexity API to analyze real-time financial data from trusted sources to determine optimal EUR vs USD allocation
 2. **Manage Digital Wallets**: Creates and manages wallets using Privy's API
 3. **Execute Cross-Chain Transfers**: Performs automated transfers between EURC on Aave (Base network) and strUSDC on Flow using Stargate Finance
-4. **Optimize Yield**: Continuously rebalances portfolios based on market conditions and yield opportunities
+4. **Optimize Yield and Currency Performance**: Continuously rebalances portfolios based on market conditions and yield opportunities
 
 ## 🏗️ Project Structure
 
